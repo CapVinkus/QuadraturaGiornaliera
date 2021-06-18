@@ -1,0 +1,53 @@
+{
+	"jobName": "QuadraturaJob",
+	"jobXmlFile": "job-Quadratura.xml",
+	"jarName": "Quadratura-0.0.1.jar",
+	"params": {
+		"query.daControllare": {
+			"value" :"SELECT substr(iban_old, 16) conto FROM requests WHERE institute_id = 2 AND request_type_id = 1 AND date_loading between to_date(':data 00:00:00','DD/MM/YYYY HH24:MI:SS') and to_date (':data 23:59:59','DD/MM/YYYY HH24:MI:SS')"
+		},
+		"conn.url": {
+			"value": "jdbc:oracle:thin:@gpocbp1o.ced.it:1522:GPOCBP1O"
+		},
+		"conn.username": {
+			"value": "proc_trasco"
+		},
+		"conn.password": {
+			"value": "Njm_LO098?"
+		},
+		"conn.driver": {
+			"value": "oracle.jdbc.driver.OracleDriver"
+		},
+		"mail.smtp": {
+			"value": "10.99.19.14"
+		},
+		"mail.from": {
+			"value": "it_cflow@c-global.it"
+		},
+		"mail.indirizzo": {
+			"value": "vincenzo.giacalone@c-global.it, diego.mavilla@c-global.it"
+		},
+		"xls.header": {
+			"value": "CONTO; INTESTATARIO;"
+		},
+		"xls.dir": {
+			"value": "C:\\Users\\axc0824\\Desktop\\job\\quadraturaGiornaliera\\dir\\"
+		},
+		"xls.temp": {
+			"value": "C:\\Users\\axc0824\\Desktop\\job\\quadraturaGiornaliera\\temp\\"
+		},
+		"xls.salvi": {
+			"value": "C:\\Users\\axc0824\\Desktop\\job\\quadraturaGiornaliera\\salvi\\"
+		},
+		"xls.fileName": {
+			"value": "trasferimenti "
+		},
+		"xls.format": {
+			"value": ".xls"
+		},
+		"mail.quadraturaGiornaliera": {
+			"value": "Quadratura Giornaliera"
+		}
+
+	}
+}
