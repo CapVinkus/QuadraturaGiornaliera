@@ -1,0 +1,130 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:batch="http://www.springframework.org/schema/batch"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/batch
+    http://www.springframework.org/schema/batch/spring-batch.xsd
+    http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/util
+    http://www.springframework.org/schema/util/spring-util.xsd">
+
+	<description>
+
+	</description>
+
+	<job id="QuadraturaJob"
+		xmlns="http://www.springframework.org/schema/batch">
+		<step id="CreateExcelLavorazioneStep">
+			<tasklet>
+				<chunk reader="xlsReader" writer="xlsWriter"
+					commit-interval="1">
+				</chunk>
+			</tasklet>
+			<batch:next on="COMPLETED" to="moveFileToDirTasklet" />
+			<batch:next on="FAILED" to="sendMailKoStep" />
+		</step>
+
+		<step id="moveFileToDirTasklet">
+			<tasklet ref="moveFileToDir" />
+			<batch:next on="COMPLETED" to="deleteTaskletStep" />
+			<batch:next on="FAILED" to="sendMailKoStep" />
+		</step>
+		<step id="deleteTaskletStep">
+			<tasklet ref="cleanDirTmp" />
+			<batch:next on="COMPLETED" to="sendMailOkStep" />
+			<batch:next on="FAILED" to="sendMailKoStep" />
+		</step>
+		<step id="sendMailKoStep">
+			<tasklet ref="sendMailKoTasklet" />
+		</step>
+		<step id="sendMailOkStep">
+			<tasklet ref="sendMailOkTasklet" />
+		</step>
+	</job>
+
+	<!-- === READER === -->
+	<bean id="xlsReader" class="it.gepo.engine.Reader" scope="step">
+		<property name="dataSource" ref="jobDataSource" />
+		<property name="tempFile"
+			value="#{jobParameters['xls.temp']}" />
+		<property name="query"
+			value="#{jobParameters['query.daControllare']}" />
+		<property name="mapFileName" ref="mapFileName" />
+	</bean>
+
+	<bean id="xlsWriter" class="it.gepo.engine.writer.FileExcelWriter"
+		scope="step">
+		<property name="header"
+			value="#{jobParameters['xls.header']}" />
+		<property name="dirFile" value="#{jobParameters['xls.dir']}"></property>
+		<property name="mapFileName" ref="mapFileName" />
+	</bean>
+
+	<bean id="moveFileToDir"
+		class="it.gepo.engine.support.tasklet.FileMoveTasklet" scope="job">
+		<property name="sourceFile"
+			value="file:#{jobParameters['xls.temp']}#{jobExecutionContext['nomeFile']}"></property>
+		<property name="destFile"
+			value="file:#{jobParameters['xls.salvi']}#{jobExecutionContext['nomeFile']}"></property>
+	</bean>
+
+	<bean id="cleanDirTmp"
+		class="it.gepo.engine.support.tasklet.CleanDirTasklet" scope="job">
+		<property name="dirPath" value="#{jobParameters['xls.temp']}" />
+	</bean>
+
+	<!-- === DATASOURCE === -->
+	<bean id="jobDataSource"
+		class="org.apache.commons.dbcp.BasicDataSource" scope="job">
+		<property name="driverClassName"
+			value="#{jobParameters['conn.driver']}" />
+		<property name="url" value="#{jobParameters['conn.url']}" />
+		<property name="username"
+			value="#{jobParameters['conn.username']}" />
+		<property name="password"
+			value="#{jobParameters['conn.password']}" />
+	</bean>
+
+	<!-- === MAIL OK SENDER TASKLET === -->
+
+	<bean id="sendMailOkTasklet"
+		class="it.gepo.engine.support.tasklet.SendMailTasklet" scope="step">
+		<property name="mailSender" ref="delegatedMailSender"></property>
+		<property name="from" value="#{jobParameters['mail.from']}"></property>
+		<property name="recipients"
+			value="#{jobParameters['mail.indirizzo']}"></property>
+		<property name="title" value="#{jobParameters['mail.quadraturaGiornaliera']}"></property>
+		<property name="attachedResources"
+			value="file:#{jobParameters['xls.dir']}#{jobExecutionContext['nomeFile']}" />
+	</bean>
+
+	<!-- === MAIL KO SENDER TASKLET === -->
+
+	<bean id="sendMailKoTasklet"
+		class="it.gepo.engine.support.tasklet.SendMailTasklet" scope="step">
+		<property name="mailSender" ref="delegatedMailSender"></property>
+		<property name="from" value="#{jobParameters['mail.from']}"></property>
+		<property name="recipients"
+			value="#{jobParameters['mail.indirizzo']}"></property>
+		<property name="title" value="#{jobParameters['mail.quadraturaGiornaliera']}"></property>
+		<property name="textGenerator">
+			<bean class="it.gepo.engine.support.utility.TextGenerator">
+				<property name="text"
+					value="Errore inserimento \n #{jobExecutionContext['getSummary']}"></property>
+			</bean>
+		</property>
+		<property name="separateMails" value="true" />
+	</bean>
+
+	<!-- === MAIL SENDER === -->
+
+	<bean id="delegatedMailSender"
+		class="org.springframework.mail.javamail.JavaMailSenderImpl"
+		scope="step">
+		<property name="host" value="#{jobParameters['mail.smtp']}" />
+	</bean>
+
+	<util:map id="mapFileName" map-class="java.util.HashMap" />
+</beans>
